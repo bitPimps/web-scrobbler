@@ -1,6 +1,7 @@
 <template>
 	<header class="navbar navbar-expand navbar-dark bg-dark sticky-top">
 		<nav class="container" aria-label="Main navigation">
+			<sprite-icon class="logo mr-3" :icon="webScrobblerIcon" />
 			<span class="navbar-brand">Web Scrobbler</span>
 			<ul class="navbar-nav ml-sm-auto">
 				<li class="nav-item">
@@ -62,6 +63,8 @@ import discordIcon from 'simple-icons/icons/discord.svg';
 import githubIcon from 'simple-icons/icons/github.svg';
 import twitterIcon from 'simple-icons/icons/twitter.svg';
 
+import webScrobblerIcon from '@/icons/icon_chrome_circle.svg';
+
 export default {
 	components: { SpriteIcon },
 	data() {
@@ -71,6 +74,7 @@ export default {
 			discordIcon,
 			githubIcon,
 			twitterIcon,
+			webScrobblerIcon,
 
 			isSidebarVisible: false,
 		};
@@ -96,5 +100,10 @@ export default {
 .contact-link svg {
 	height: 1.5rem;
 	width: 1.5rem;
+}
+
+.logo {
+	height: 2rem;
+	width: 2rem;
 }
 </style>
