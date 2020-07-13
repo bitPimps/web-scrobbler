@@ -385,11 +385,11 @@ export default class Controller {
 			 */
 			if (this.currentSong.parsed.isPlaying) {
 				/*
-					 * If playback timer is expired, then the extension
-					 * will scrobble song immediately, and there's no need
-					 * to set song as now playing. We should dispatch
-					 a "now playing" event, though.
-					 */
+				 * If playback timer is expired, then the extension
+				 * will scrobble song immediately, and there's no need
+				 * to set song as now playing. We should dispatch
+				 * a "now playing" event, though.
+				 */
 				if (!this.playbackTimer.isExpired()) {
 					this.setSongNowPlaying();
 				} else {
