@@ -201,11 +201,11 @@ export default class Controller {
 	}
 
 	/**
-	 * React on state change.
+	 * Process connector state chage.
 	 *
-	 * @param {Object} newState State of connector
+	 * @param {Object} state Connector state
 	 */
-	async onStateChanged(newState) {
+	async processStateChange(state) {
 		if (!this.isEnabled) {
 			return;
 		}
@@ -214,7 +214,7 @@ export default class Controller {
 		 * Empty state has same semantics as reset; even if isPlaying,
 		 * we don't have enough data to use.
 		 */
-		if (isStateEmpty(newState)) {
+		if (isStateEmpty(state)) {
 			if (this.currentSong) {
 				this.debugLog('Received empty state - resetting');
 
@@ -222,10 +222,10 @@ export default class Controller {
 				this.reset();
 			}
 
-			if (newState.isPlaying) {
+			if (state.isPlaying) {
 				this.debugLog(
 					`State from connector doesn't contain enough information about the playing track: ${toString(
-						newState
+						state
 					)}`,
 					'warn'
 				);
@@ -234,16 +234,20 @@ export default class Controller {
 			return;
 		}
 
-		const isSongChanged = this.isSongChanged(newState);
+		const isSongChanged = this.isSongChanged(state);
 
 		if (isSongChanged || this.isReplayingSong) {
-			if (newState.isPlaying) {
-				this.processNewState(newState);
+			if (state.isPlaying) {
+				if (this.isNeedToAddSongToScrobbleStorage()) {
+					await this.addSongToScrobbleStorage();
+				}
+
+				this.processNewState(state);
 			} else {
 				this.reset();
 			}
 		} else {
-			this.processCurrentState(newState);
+			this.processCurrentState(state);
 		}
 	}
 
@@ -271,9 +275,7 @@ export default class Controller {
 	 *
 	 * @param {Object} newState Connector state
 	 */
-	async processNewState(newState) {
-		await this.addUnknownSongToStorage();
-
+	processNewState(newState) {
 		/*
 		 * We've hit a new song (or replaying the previous one)
 		 * clear any previous song and its bindings.
@@ -480,24 +482,19 @@ export default class Controller {
 	}
 
 	/**
-	 * Add current song to scrobble storage if it's needed.
-	 */
-	async addUnknownSongToStorage() {
-		if (this.isNeedToAddSongToScrobbleStorage()) {
-			const boundScrobblerIds = ScrobbleService.getBoundScrobblers().map(
-				(scrobbler) => scrobbler.getId()
-			);
-
-			await this.addSongToScrobbleStorage(boundScrobblerIds);
-		}
-	}
-
-	/**
-	 * Add current song to scrobble storage.
+	 * Add current song to scrobble storage. If no `scrobblerIds` are passed,
+	 * the list of bound scrobbler IDs will be used.
 	 *
-	 * @param {Array} scrobblerIds Array of scrobbler IDs
+	 * @param {Array} [scrobblerIds] Array of scrobbler IDs
 	 */
 	async addSongToScrobbleStorage(scrobblerIds) {
+		if (!Array.isArray(scrobblerIds)) {
+			// eslint-disable-next-line no-param-reassign
+			scrobblerIds = ScrobbleService.getBoundScrobblers().map(
+				(scrobbler) => scrobbler.getId()
+			);
+		}
+
 		await ScrobbleStorage.addSong(this.currentSong.getInfo(), scrobblerIds);
 	}
 

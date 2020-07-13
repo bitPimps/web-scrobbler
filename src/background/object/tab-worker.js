@@ -165,7 +165,7 @@ export default class TabWorker {
 			case EVENT_STATE_CHANGED: {
 				const ctrl = this.tabControllers[tabId];
 				if (ctrl) {
-					ctrl.onStateChanged(data);
+					ctrl.processStateChange(data);
 				}
 				break;
 			}
