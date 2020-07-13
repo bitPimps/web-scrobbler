@@ -138,6 +138,37 @@ export default class Controller {
 	}
 
 	/**
+	 * Make the controller to continue processing the current song.
+	 */
+	unskipCurrentSong() {
+		this.assertSongIsNotNull();
+
+		this.currentSong.flags.isSkipped = false;
+
+		if (this.currentSong.isValid()) {
+			if (this.currentSong.isPlaying()) {
+				const {	isMarkedAsPlaying } = this.currentSong.flags;
+				if (!isMarkedAsPlaying) {
+					this.setSongNowPlaying();
+				} else {
+					this.setMode(ControllerMode.Playing);
+				}
+
+				this.updateTimers(this.currentSong.getDuration());
+			} else {
+				this.setMode(ControllerMode.Base);
+
+				this.playbackTimer.pause();
+				this.replayDetectionTimer.pause();
+			}
+		} else {
+			this.setMode(ControllerMode.Unknown);
+		}
+
+		this.onSongUpdated();
+	}
+
+	/**
 	 * Get connector match object.
 	 *
 	 * @return {Object} Connector
@@ -286,11 +317,6 @@ export default class Controller {
 
 		this.debugLog(`New song detected: ${toString(newState)}`);
 
-		if (!this.shouldScrobblePodcasts && newState.isPodcast) {
-			this.skipCurrentSong();
-			return;
-		}
-
 		/*
 		 * Start the timer, actual time will be set after processing
 		 * is done; we can call doScrobble directly, because the timer
@@ -373,6 +399,11 @@ export default class Controller {
 			`Song finished processing: ${this.currentSong.toString()}`
 		);
 
+		if (this.isNeedToSkipSong()) {
+			this.skipCurrentSong();
+			return;
+		}
+
 		if (this.currentSong.isValid()) {
 			// Processing cleans this flag
 			this.currentSong.flags.isMarkedAsPlaying = false;
@@ -392,9 +423,9 @@ export default class Controller {
 				 */
 				if (!this.playbackTimer.isExpired()) {
 					this.setSongNowPlaying();
-				} else {
-					this.dispatchEvent(ControllerEvent.SongNowPlaying);
 				}
+
+				this.dispatchEvent(ControllerEvent.SongNowPlaying);
 			} else {
 				this.setMode(ControllerMode.Base);
 			}
@@ -482,6 +513,16 @@ export default class Controller {
 	}
 
 	/**
+	 * Check if the current song should be skipped after it's processed.
+	 *
+	 * @return {Boolean} Check result
+	 */
+	isNeedToSkipSong() {
+		// TODO
+		return false;
+	}
+
+	/**
 	 * Add current song to scrobble storage. If no `scrobblerIds` are passed,
 	 * the list of bound scrobbler IDs will be used.
 	 *
@@ -548,10 +589,14 @@ export default class Controller {
 			this.replayDetectionTimer.update(duration);
 
 			const remainedSeconds = this.playbackTimer.getRemainingSeconds();
+			const remainedRepeatSeconds = this.replayDetectionTimer.getRemainingSeconds();
+
 			this.debugLog(
 				`The song will be scrobbled in ${remainedSeconds} seconds`
 			);
-			this.debugLog(`The song will be repeated in ${duration} seconds`);
+			this.debugLog(
+				`The song will be repeated in ${remainedRepeatSeconds} seconds`
+			);
 		} else {
 			this.debugLog('The song is too short to scrobble');
 		}
@@ -574,8 +619,6 @@ export default class Controller {
 			this.debugLog("Song isn't set as now playing");
 			this.setMode(ControllerMode.Err);
 		}
-
-		this.dispatchEvent(ControllerEvent.SongNowPlaying);
 	}
 
 	/**
